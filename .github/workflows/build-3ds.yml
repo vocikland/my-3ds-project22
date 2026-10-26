@@ -10,31 +10,32 @@ on:
 jobs:
   build-3ds:
     runs-on: ubuntu-latest
-    container:
-      image: devkitpro/devkitarm:latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install 3DS packages & tools
+      - name: Build .3dsx and .cia in devkitARM Docker
         run: |
-          dkp-pacman -Syu --noconfirm \
-            3ds-dev \
-            3ds-libctru \
-            3ds-citro2d \
-            3ds-citro3d \
-            3ds-mbedtls \
-            3ds-zlib \
-            makerom \
-            bannertool \
-            3dsxtool
-
-      - name: Build .3dsx and .cia
-        run: |
-          make clean
-          make -j$(nproc)
-          make cia
+          docker run --rm \
+            -v "${{ github.workspace }}:/source" \
+            -w /source \
+            devkitpro/devkitarm:latest \
+            /bin/bash -c "
+              dkp-pacman -Syu --noconfirm \
+                3ds-dev \
+                3ds-libctru \
+                3ds-citro2d \
+                3ds-citro3d \
+                3ds-mbedtls \
+                3ds-zlib \
+                makerom \
+                bannertool \
+                3dsxtool && \
+              make clean && \
+              make -j\$(nproc) && \
+              make cia
+            "
 
       - name: Upload .3dsx artifact
         uses: actions/upload-artifact@v4
